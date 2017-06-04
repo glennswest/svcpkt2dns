@@ -1,0 +1,31 @@
+{
+  "name": "svcpkt2dns",
+  "version": "1.0.0",
+  "description": "Bridge between packet.net and svcdns - Autocreate dns names for packet hosts",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/glennswest/svcpkt2dns.git"
+  },
+  "author": "glenn west",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/glennswest/svcpkt2dns/issues"
+  },
+  "homepage": "https://github.com/glennswest/svcpkt2dns#readme",
+  "dependencies": {
+    "diskdb": "^0.1.17",
+    "finalhandler": "^1.0.3",
+    "getenv": "^0.7.0",
+    "jquery-bootgrid": "^1.3.1",
+    "mqtt": "^2.8.0",
+    "packet-api": "^0.1.3",
+    "restify": "^4.3.0",
+    "serve-static-restify": "^1.0.0",
+    "util": "^0.10.3",
+    "uuid": "^3.0.1"
+  }
+}
