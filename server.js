@@ -11,6 +11,8 @@ var myuuid = uuid();
  
 
 pkt_api_key = getenv('pktapikey');
+defaultdomain = getenv('defaultdomain');
+
 var packet = new PacketAPI({
     api_key: pkt_api_key
 });
@@ -28,16 +30,16 @@ console.log("My IP is: " + myIP);
 // Setup Restify Web Serving for data
 var app = restify.createServer()
  
-app.pre(serveStatic('/data', {}))
-app.listen(3000)
 
 // Setup MQTT for communications to DNS
-var mymqtt  = mqtt.connect('mqtt://' + myIP);
-var servicedata = {name: "svcpkt2dns",ip: myIP, id: myuuid, version: "v1"};
+//var mqtt_hostname = "mqtt://" + "svcmqtt" + "." + defaultdomain + ":1883";
+var mqtt_hostname = "mqtt://" + myIP;
+console.log(mqtt_hostname);
+var mymqtt  = mqtt.connect(mqtt_hostname);
 
 mymqtt.on('connect', function(){
-    mymqtt.subscribe('servicediscovery');
-    mymqtt.publish('servicediscovery',JSON.stringify(servicedata));
+    console.log("Attached to svcmqtt");
+    mymqtt.subscribe('svcdnsadd');
     }
 )
 
@@ -49,7 +51,9 @@ mymqtt.on('message', function(topic, messagestr){
             case "servicediscovery":
                  switch(message.name){
                      case "svcdns":
-                          send_dnsresync_message();
+                          break;
+                     case "svcdnsadd":
+                          console.log(util.inspect(message));
                           break;
                      default:
                           break;
@@ -60,6 +64,16 @@ mymqtt.on('message', function(topic, messagestr){
          }
 
 });
+
+function add_host_name(name, ip){
+        console.log("Add DNS Entry for " + name + "(" + ip + ")");
+        message = {};
+        message.name = name;
+        message.ip = ip;
+        message.version = 'v1';
+        mymqtt.publish('svcdnsadd',JSON.stringify(message));
+        return;
+}
 
 //{ projects: 
 //   [ { id: '2213f239-96cc-49c4-a4f0-47545577f15f',
@@ -176,18 +190,23 @@ function process_device(dev)
 {
 var hr = {};
       ipaddr = get_ip_address(dev.ip_addresses);
-      console.log(util.inspect(dev));
       pid = dev.project.href.split('/')[2];
       console.log(pid + " " + dev.hostname + " " + ipaddr[0]);
-      x = db.hosts.findOne({project_id : pid});
+      x = db.hosts.findOne({id : dev.id});
       if (x === undefined){
+         if (dev.hostname.includes(".")){
+      	    hr.hostname = dev.hostname;
+           } else {
+            hr.hostname = dev.hostname + "." + defaultdomain;
+           }
+         hr.id = dev.id;
          hr.project_id = pid;
          hr.project_name = find_project_name(pid);
-      	 hr.hostname = dev.hostname;
          hr.ip = ipaddr[0];
          hr.first_seen = Date.now();
          hr.last_seen = Date.now();
          db.hosts.save(hr);
+         add_host_name(hr.hostname, hr.ip);
          console.log("Adding " + hr.hostname);
          } else {
          console.log("Updating " + x.hostname);
@@ -230,4 +249,6 @@ function process_projects(projs)
 
 }
 
-check_projects();
+    check_projects();
+    setInterval(check_projects, 60000);
+
